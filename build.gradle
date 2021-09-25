@@ -1,0 +1,44 @@
+plugins {
+    id 'scala'
+    id 'java'
+    id 'idea'
+    id "com.github.johnrengelman.shadow" version "5.1.0"
+}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    jcenter()
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.apache.spark:spark-sql_2.12:3.1.1'
+    compile 'org.apache.spark:spark-core_2.12:3.1.1'
+    compile "io.delta:delta-core_2.12:1.0.0"
+    compile group: "org.apache.spark", name: "spark-hive_2.12", version: "3.1.1"
+
+}
+
+shadowJar {
+    classifier = 'shadow'
+//    zip64 true
+    dependencies {
+        include dependency("io.delta:delta-core_2.12:1.0.0")
+    }
+}
+
+task copyDependencies(type: Copy) {
+    from(configurations.compile)
+    into('build/libs/lib')
+    include('delta-core_2.12-1.0.0.jar')
+}
+
+
+task buildJar(type: Copy, dependsOn: ["shadowJar", "clearJar", "copyDependencies"])
+
+
+task clearJar(type: Delete) {
+    delete 'build/libs'
+}
