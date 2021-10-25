@@ -14,8 +14,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.apache.spark:spark-sql_2.12:3.1.1'
-    compile 'org.apache.spark:spark-core_2.12:3.1.1'
+    compile 'org.apache.spark:spark-sql_2.12:3.1.2'
+    compile 'org.apache.spark:spark-core_2.12:3.1.2'
     compile "io.delta:delta-core_2.12:1.0.0"
     compile group: "org.apache.spark", name: "spark-hive_2.12", version: "3.1.1"
 
@@ -36,7 +36,7 @@ task copyDependencies(type: Copy) {
 }
 
 
-task buildJar(type: Copy, dependsOn: ["shadowJar", "clearJar", "copyDependencies"])
+task buildJars(type: Copy, dependsOn: ["shadowJar", "clearJar", "copyDependencies"])
 
 
 task clearJar(type: Delete) {

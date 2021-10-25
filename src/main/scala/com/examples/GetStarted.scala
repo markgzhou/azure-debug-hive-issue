@@ -13,60 +13,27 @@ import org.apache.spark.rdd.RDD
 object GetStarted {
   def main(args: Array[String]) {
 
-    // initialise spark context
-    val conf = new SparkConf().setAppName(GetStarted.getClass.getName)
-      .set("spark.sql.hive.metastore.version", "2.3.7").set("spark.sql.hive.metastore.jars", "builtin")
-    val spark: SparkSession = SparkSession.builder.enableHiveSupport().config(conf).getOrCreate()
-    val sc: SparkContext = spark.sparkContext
+    val spark: SparkSession = SparkSession.builder.enableHiveSupport().getOrCreate()
 
-    // Change Logging level
-    sc.setLogLevel("ERROR")
-    Logger.getLogger("org").setLevel(Level.ERROR)
-    Logger.getLogger("akka").setLevel(Level.ERROR)
-    LogManager.getRootLogger.setLevel(Level.ERROR)
-
-    // print Hello World to logs
-    println("Hello, world!")
-
-    // show DBs
-    spark.sql("SHOW DATABASES").show(false)
-
-    // create database
-    spark.sql("CREATE DATABASE IF NOT EXISTS azure_test ").show(false)
-
-    //    create table
-    spark.sql(
+    val df = spark.sql(
       """
-        |create table IF NOT EXISTS azure_test.my_table
-        |(
-        |   my_id       Long      comment 'my id',
-        |   my_value    string    comment 'my value'
-        |)  using delta location '/tmp/data/azure_test/my_table';
-        |""".stripMargin).show(false)
+        |SELECT `id`,  `uid`,  `role`,  `watchtime`,  `watchtimes`,  `nickname`,  `mobile`,  `hospital`,  `office`,  `jobtitle`,  `videoid`,  `speaker`,  `doctorcode`,  `amscode`,  `isspeaker`,  `joinType`,  `oce_doctorname`,  `oce_hospital`,  `oce_office`,  `oce_doctorcode` , "insert" as delta_op , now() as current_timestamp
+        | FROM
+        | (
+        |  select `id`,  `uid`,  `role`,  `watchtime`,  `watchtimes`,  `nickname`,  `mobile`,  `hospital`,  `office`,  `jobtitle`,  `videoid`,  `speaker`,  `doctorcode`,  `amscode`,  `isspeaker`,  `joinType`,  `oce_doctorname`,  `oce_hospital`,  `oce_office`,  `oce_doctorcode` from pre_ods.emt_report
+        |    where  task_run_time = (select max(task_run_time) FROM pre_ods.emt_report
+        | WHERE data_date=20211022)
+        | AND data_date=20211022
+        |  EXCEPT ALL
+        |  (
+        |  select `id`,  `uid`,  `role`,  `watchtime`,  `watchtimes`,  `nickname`,  `mobile`,  `hospital`,  `office`,  `jobtitle`,  `videoid`,  `speaker`,  `doctorcode`,  `amscode`,  `isspeaker`,  `joinType`,  `oce_doctorname`,  `oce_hospital`,  `oce_office`,  `oce_doctorcode` from pre_ods.emt_report
+        |    where  task_run_time = (select max(task_run_time) FROM pre_ods.emt_report
+        | WHERE data_date=20211021)
+        | AND data_date=20211021
+        |  )
+        |)
+        |""".stripMargin)
 
-    // generate DataFrame with schema
-    val rowsRdd: RDD[Row] = sc.parallelize(
-      Seq(
-        Row("first", 2.0, 7.0),
-        Row("second", 3.5, 2.5),
-        Row("third", 7.0, 5.9)
-      )
-    )
-
-    val schema = new StructType()
-      .add(StructField("name", StringType, true))
-      .add(StructField("val1", DoubleType, true))
-      .add(StructField("val2", DoubleType, true))
-
-    val df = spark.createDataFrame(rowsRdd, schema)
-    df.show(false)
-    df.createOrReplaceTempView("myTempTable")
-
-    spark.sql("create table IF NOT EXISTS azure_test.my_table2 as (select * from myTempTable)").show(false)
-
-    print(HiveMetaStoreUtil.getHiveTableNonePartitionColNames("azure_test", "my_table2").mkString("Array(", ", ", ")"))
-    print(HiveMetaStoreUtil.getHiveTableNonePartitionCols("azure_test", "my_table2").mkString("Array(", ", ", ")"))
-
-    print(">>>>> COMPLETE!!!")
+    df.show()
   }
 }
